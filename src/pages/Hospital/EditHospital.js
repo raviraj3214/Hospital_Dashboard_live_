@@ -21,20 +21,20 @@ class EditHospital extends Component {
             client_id: '',
             password: '',
             access_token:"",
+            name:"",
         };
     }
     async componentDidMount() {
         try {
           const { match } = this.props; // React Router match object
-          const client_id = match.params.client_id;
-          console.log("hii hello chalo" + client_id);
-      
+          const id = match.params.client_id;
+        //   toast.success(id);
           const access = JSON.parse(localStorage.getItem('access_token'));
           if (access) {
-            this.setState({ access_token: access });
+            this.setState({ access_token: access,client_id:id });
           }
       
-          const response = await fetch(`/Hospital/list/${client_id}/`, {
+          const response = await fetch(`/Hospital/list/${id}/`, {
             headers: {
               'Authorization': `Bearer ${access}`
             }
@@ -50,14 +50,13 @@ class EditHospital extends Component {
       
           // Update state with fetched hospital data
           this.setState({
-            client_id: data.hospital_id,
+            client_id: id,
             hospital_name: data.hospital_name,
             owner_name: data.owner_name,
             city: data.city,
             address: data.address,
             email: data.email,
             phone: data.phone,
-            password: data.password,
           });
         } catch (error) {
           console.log(error);
@@ -74,37 +73,59 @@ class EditHospital extends Component {
     };
 
 
-
-    handleSubmit = async (e) => {
+    handleSubmit = (e) => {
         e.preventDefault();
         const {
-          owner_name, hospital_name, city, address, email, phone, client_id, password,
+          owner_name, hospital_name, city, address, email, phone, client_id, password, name,
         } = this.state;
-    
-        const formData = {
-          owner_name, hospital_name, city, address, email, phone, password,
-        };
-    
-        try {
-          const response = await axios.put(`/Hospital/update/${client_id}/`, formData, {
+      
+        let formData;
+        const abc = owner_name;
+        if (abc) {
+          this.setState({ name: abc });
+        }
+      
+        // Check if the password field is empty
+        if (!password) {
+          // If the password field is empty, remove it from formData
+          formData = {
+            owner_name, hospital_name, city, address, email, phone, name,
+          };
+        } else {
+          // If the password field is not empty, include it in formData
+          formData = {
+            owner_name, hospital_name, city, address, email, phone, password, name,
+          };
+        }
+      
+        // Synchronous code here
+        this.sendFormDataToServer(formData);
+      };
+      
+      sendFormDataToServer = (formData) => {
+        axios
+          .put(`/Hospital/update/${this.state.client_id}/`, formData, {
             headers: {
+              Authorization: `Bearer ${this.state.access_token}`,
               'Content-Type': 'application/json',
             },
+          })
+          .then((response) => {
+            const data = response.data;
+      
+            if (data.message) {
+              toast.success(data.message);
+              this.props.history.push('/hospital-list'); // Assuming "/hospital-list" is the route for the hospital list page
+            } else {
+              toast.error(data.message || 'An error occurred while processing your request.');
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            toast.error("An error occurred while processing your request.");
           });
-    
-          const data = response.data;
-    
-          if (response.status === 200 && data.message) {
-            toast.success(data.message);
-            this.props.history.push('/hospital-list'); // Assuming "/hospital-list" is the route for the hospital list page
-          } else {
-            toast.error(data.message || 'An error occurred while processing your request.');
-          }
-        } catch (error) {
-          console.error("Error:", error);
-          toast.error("An error occurred while processing your request.");
-        }
       };
+      
 
     render() {
         const {
@@ -179,6 +200,27 @@ class EditHospital extends Component {
                                                     </div>
                                                 </Col>
                                                 
+                                            </Row>
+                                            <Row>
+                                                <Col md="6">
+                                                    <div className="mb-3 position-relative">
+                                                        <Label className="form-label" htmlFor="validationTooltip04">Profile Image</Label>
+                                                        <Input type="file" className="form-control" id="validationTooltip06" name="profile_image" placeholder="Profile Image" onChange={this.handleProfileImageChange} />
+                                                        <div className="valid-tooltip">
+                                                            Looks good!
+                                                        </div>
+                                                    </div>
+                                                </Col>
+                                                <Col md="6">
+                                                    <div className="mb-3 position-relative">
+                                                        <Label className="form-label" htmlFor="validationTooltip04">User Logo</Label>
+                                                        <Input type="file" className="form-control" id="validationTooltip06" name="user_logo" placeholder="User Logo" onChange={this.handleUserLogoChange}/>
+                                                        <div className="valid-tooltip">
+                                                            Looks good!
+                                                        </div>
+                                                    </div>
+                                                </Col>
+                                               
                                             </Row>
                                             <Row>
                                             <Col md="12">

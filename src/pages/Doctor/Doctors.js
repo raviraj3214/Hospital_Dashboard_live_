@@ -230,8 +230,10 @@ class Doctors extends Component {
 
         // Filter the data based on the searchQuery
         const filteredDoctors = data.filter((doctor) => {
-            const firstNameMatch = doctor.first_name.toLowerCase().includes(searchQuery.toLowerCase());
-            const lastNameMatch = doctor.last_name.toLowerCase().includes(searchQuery.toLowerCase());
+            // const firstNameMatch = doctor.first_name.toLowerCase().includes(searchQuery.toLowerCase());
+            // const lastNameMatch = doctor.last_name.toLowerCase().includes(searchQuery.toLowerCase());
+            const fullName = `${doctor.first_name} ${doctor.last_name}`; // Combine first name and last name
+    const fullNameMatch = fullName.toLowerCase().includes(searchQuery.toLowerCase());
             const emailMatch = doctor.email.toLowerCase().includes(searchQuery.toLowerCase());
             const contactNumberMatch = doctor.contact_number.toLowerCase().includes(searchQuery.toLowerCase());
             const departmentMatch = doctor.department.toLowerCase().includes(searchQuery.toLowerCase());
@@ -239,8 +241,7 @@ class Doctors extends Component {
 
             // Return true if at least one condition is met
             return (
-                firstNameMatch ||
-                lastNameMatch ||
+                fullNameMatch ||
                 emailMatch ||
                 contactNumberMatch ||
                 departmentMatch ||

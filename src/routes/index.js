@@ -7,7 +7,6 @@ import Logout from "../pages/Authentication/Logout";
 import ForgetPwd from "../pages/Authentication/ForgetPassword";
 import AuthLockScreen from "../pages/Authentication/AuthLockScreen";
 //import Register12 from "../pages/Authentication/Register12";
-import Login12 from "../pages/Authentication/Login12";
 import PasswordReset from "../pages/Authentication/PasswordReset";
 import ProfilePasswordChange from "../pages/Authentication/ProfilePasswordChange";
 // Dashboard

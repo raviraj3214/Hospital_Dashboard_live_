@@ -5,6 +5,7 @@ import { withRouter } from "react-router-dom";
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css'; // Import the CSS file for styling
+import Swal from 'sweetalert2'; // Import sweetalert2
 import Breadcrumbs from '../../components/Common/Breadcrumb';
 import BootstrapTable from 'react-bootstrap-table-next';
 import paginationFactory from 'react-bootstrap-table2-paginator';
@@ -118,7 +119,7 @@ class Departments extends Component {
             const data = await response.json();
 
             if (response.ok && data.message) {
-                window.alert(data.message);
+                toast.success(data.message);
                 this.getDepartments();
                 this.setState({ showEditForm: false, department_name: "", newDepartmentName: "" })
             } else {
@@ -159,60 +160,54 @@ class Departments extends Component {
             });
 
             this.getDepartments(); // Refresh the table data
-            alert("The department has been added.");
+            toast.success("The department has been added.");
         } catch (error) {
             console.error('Addition failed:', error);
-            alert("Addition failed");
+            toast.error("Addition failed");
         }
     };
 
     handleDeleteDepartment = async (id) => {
-        const { client_id,access_token,
-        } = this.state;
-        const confirmDelete = window.confirm("Delete this department?\nYou won't be able to revert this!");
-
-        if (confirmDelete) {
-            // try {
-            //     const response = await fetch(`http://194.163.40.231:8080/Department/deleteBy/`, {
-            //         method: "DELETE",
-            //         headers: {
-            //             "Content-Type": "application/json",
-            //         },
-            //     });
-
-            //     if (!response.ok) {
-            //         throw new Error("Deletion failed");
-            //     }
-
-            //     // On successful deletion, fetch updated data and update state
-            //     this.getDepartments(); // Refresh the table data
-            //     alert("The department has been deleted.");
-            // } catch (error) {
-            //     console.error('Deletion failed:', error);
-            //     alert("Deletion failed");
-            // }
-            // const department_id="";
-            axios.post(`/Department/deleteBy/`,
-                { department_id: id, client_id },
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        'Authorization': `Bearer ${access_token}`,
-
-                    },
-                }
-            )
-                .then((response) => {
-
-                    this.getDepartments();
-                    alert("The department has been deleted.");
-                })
-                .catch((error) => {
-                    console.error('Deletion failed:', error);
-                    alert("Deletion failed");
-                });
+        const { client_id, access_token } = this.state;
+      
+        try {
+          const result = await Swal.fire({
+            title: 'Delete Department',
+            text: "Are you sure you want to delete this department? You won't be able to revert this action!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'No, cancel',
+            reverseButtons: true,
+          });
+      
+          if (result.isConfirmed) {
+            await this.deleteDepartment(id, client_id, access_token);
+            Swal.fire('Deleted!', 'Your file has been deleted.', 'success');
+            
+          }
+            
+        } catch (error) {
+          console.error('Deletion failed:', error);
+          Swal.fire('Error', 'Deletion failed', 'error');
         }
-    };
+      };
+      deleteDepartment = async (id, client_id, access_token) => {
+        const response = await axios.post(
+            `/Department/deleteBy/`,
+            { department_id: id, client_id },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${access_token}`,
+              },
+            }
+          );
+    
+          this.getDepartments();
+            Swal.fire('Deleted!', 'The department has been deleted.', 'success');
+      };
+    
 
     handlePageChange = (newPage) => {
         this.setState({

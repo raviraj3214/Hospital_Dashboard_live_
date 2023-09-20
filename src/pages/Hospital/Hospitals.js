@@ -2,6 +2,7 @@ import React, { Component } from "react";
 import BootstrapTable from 'react-bootstrap-table-next';
 import { toast } from 'react-toastify'; // Import toast from react-toastify
 import axios from 'axios';
+import Swal from 'sweetalert2'; // Import sweetalert2
 import 'react-toastify/dist/ReactToastify.css'; // Import the CSS file for styling//import paginationFactory from 'react-bootstrap-table2-paginator';
 import { Row, Col, Card, CardBody, Container } from "reactstrap";
 import { FaEdit, FaTrashAlt } from 'react-icons/fa';
@@ -78,33 +79,46 @@ class Hospitals extends Component {
             this.setState({ error: 'Error fetching data', loading: false });
         }
     };
-    handleDeleteHospital = async (client_id) => {
-        const { access_token } = this.state;
-        const confirmDelete = window.confirm("Delete this hospital?\nYou won't be able to revert this!");
+    // Define the deleteHospital function separately
+deleteHospital = async (client_id, access_token) => {
+    const response = await fetch(`/Hospital/delete/${client_id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        'Authorization': `Bearer ${access_token}`,
+      },
+    });
+  
     
-        if (confirmDelete) {
-            try {
-                const response = await fetch(`/Hospital/delete/${client_id}`, {
-                    method: "DELETE",
-                    headers: {
-                        "Content-Type": "application/json",
-                        'Authorization': `Bearer ${access_token}`,
-                    },
-                });
-    
-                if (!response.ok) {
-                    throw new Error("Deletion failed");
-                }
-    
-                this.getAllHospitals();
-                alert("The hospital has been deleted.");
-            } catch (error) {
-                console.error('Deletion failed:', error);
-                alert("Deletion failed");
-            }
-        }
-    };
-    
+  
+    this.getAllHospitals();
+  };
+  
+  // Now, the handleDeleteHospital function
+  handleDeleteHospital = async (client_id) => {
+    const { access_token } = this.state;
+  
+    try {
+      const result = await Swal.fire({
+        title: 'Delete Hospital',
+        text: "Are you sure you want to delete this hospital? You won't be able to revert this action!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'No, cancel',
+        reverseButtons: true,
+      });
+  
+      if (result.isConfirmed) {
+        await this.deleteHospital(client_id, access_token);
+        Swal.fire('Deleted!', 'The hospital has been deleted.', 'success');
+      }
+    } catch (error) {
+      console.error('Deletion failed:', error);
+      Swal.fire('Error', 'Deletion failed', 'error');
+    }
+  };
+  
     handlePageChange = (newPage) => {
         this.setState({
             currentPage: newPage,

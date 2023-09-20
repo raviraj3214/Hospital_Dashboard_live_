@@ -5,6 +5,8 @@ import { toast } from 'react-toastify'; // Import toast from react-toastify
 import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css'; // Import the CSS file for styling
 // Import Breadcrumb
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import Breadcrumbs from '../../components/Common/Breadcrumb';
 
 class AddPatient extends Component {
@@ -20,8 +22,8 @@ class AddPatient extends Component {
             gender: "",
             address: "",
             medical_history: "",
-            client:"",
-            access_token:"",
+            client: "",
+            access_token: "",
 
         };
     }
@@ -31,35 +33,38 @@ class AddPatient extends Component {
 
         const client_id = JSON.parse(localStorage.getItem('client_id'));
         if (client_id) {
-          this.setState({ client: client_id });
-          this.setState({ access_token: access });
+            this.setState({ client: client_id });
+            this.setState({ access_token: access });
 
         }
-      }
+    }
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    }
+   
     handleChange = (e) => {
-        this.setState({
-            [e.target.name]: e.target.value,
-        });
+        const { name, value } = e.target;
+    
+        // Special handling for date_of_birth to format it correctly
+        if (name === 'date_of_birth') {
+            const formattedDate = this.formatDate(value);
+            this.setState({
+                date_of_birth: formattedDate,
+            });
+        } else {
+            this.setState({
+                [name]: value,
+            });
+        }
     };
 
     handleSubmit = async (e) => {
         e.preventDefault();
         const {
-          first_name,
-          last_name,
-          email,
-          contact_number,
-          age,
-          date_of_birth,
-          gender,
-          address,
-          medical_history,
-          client,
-          access_token,
-        } = this.state;
-      
-        try {
-          const response = await axios.post("/Patient/register/", {
             first_name,
             last_name,
             email,
@@ -70,33 +75,55 @@ class AddPatient extends Component {
             address,
             medical_history,
             client,
-          }, {
-            headers: {
-              "Content-Type": "application/json",
-              'Authorization': `Bearer ${access_token}`,
+            access_token,
+        } = this.state;
+
+        try {
+            const response = await axios.post("/Patient/register/", {
+                first_name,
+                last_name,
+                email,
+                contact_number,
+                age,
+                date_of_birth,
+                gender,
+                address,
+                medical_history,
+                client,
+            }, {
+                headers: {
+                    "Content-Type": "application/json",
+                    'Authorization': `Bearer ${access_token}`,
+                }
+            });
+
+            const data = response.data;
+
+            if (data.message && data.success) {
+                toast.success(data.message);
+                this.props.history.push('/patients'); // Assuming "/doctors" is the route for the doctors page
+
+            } else {
+                throw new Error("Something went wrong");
             }
-          });
-      
-          const data = response.data;
-      
-          if (data.message && data.success) {
-            toast.success(data.message);
-          } else {
-            throw new Error("Something went wrong");
-          }
         } catch (error) {
-          console.error("Error:", error);
-      
-          if (error.response && error.response.data && error.response.data.message) {
-            toast.error(error.response.data.message);
-          } else {
-            toast.error("Something went wrong");
-          }
+            console.error("Error:", error);
+
+            if (error.response && error.response.data && error.response.data.message) {
+                toast.error(error.response.data.message);
+            } else {
+                toast.error("Something went wrong");
+            }
         }
-      };
-      
+    };
+
 
     render() {
+        const {
+
+            date_of_birth,
+
+        } = this.state;
         return (
             <React.Fragment>
                 <div className="page-content">
@@ -110,7 +137,7 @@ class AddPatient extends Component {
                                                 <Col md="4">
                                                     <div className="mb-3 position-relative">
                                                         <Label className="form-label" htmlFor="validationTooltip01">First Name</Label>
-                                                        <Input type="text" className="form-control" id="validationTooltip01" name="first_name" placeholder="First Name" onChange={this.handleChange} required/>
+                                                        <Input type="text" className="form-control" id="validationTooltip01" name="first_name" placeholder="First Name" onChange={this.handleChange} required />
                                                         <div className="valid-tooltip">
                                                             Looks good!
                                                         </div>
@@ -119,7 +146,7 @@ class AddPatient extends Component {
                                                 <Col md="4">
                                                     <div className="mb-3 position-relative">
                                                         <Label className="form-label" htmlFor="validationTooltip01">Last Name</Label>
-                                                        <Input type="text" className="form-control" id="validationTooltip01" name="last_name" placeholder="Last Name" onChange={this.handleChange} required/>
+                                                        <Input type="text" className="form-control" id="validationTooltip01" name="last_name" placeholder="Last Name" onChange={this.handleChange} required />
                                                         <div className="valid-tooltip">
                                                             Looks good!
                                                         </div>
@@ -127,20 +154,30 @@ class AddPatient extends Component {
                                                 </Col>
                                                 <Col md="4">
                                                     <div className="mb-3 position-relative">
-                                                        <Label className="form-label" htmlFor="validationTooltip02">Email ID</Label>
-                                                        <Input type="text" className="form-control" id="validationTooltip02" name="email" placeholder="Email ID" onChange={this.handleChange} required/>
+                                                        <Label className="form-label" htmlFor="validationTooltip04">Date Of Birth</Label>
+                                                        <input
+                                                            type="date"
+                                                            className="form-control"
+                                                            placeholderText="Date Of Birth"
+                                                            name="date_of_birth"
+                                                            value={date_of_birth} // Use the formatted date
+                                                            onChange={this.handleChange}
+
+                                                            required
+                                                        />
                                                         <div className="valid-tooltip">
                                                             Looks good!
                                                         </div>
                                                     </div>
                                                 </Col>
+
                                             </Row>
 
                                             <Row>
                                                 <Col md="4">
                                                     <div className="mb-3 position-relative">
                                                         <Label className="form-label" htmlFor="validationTooltip02">Phone Number</Label>
-                                                        <Input type="text" className="form-control" id="validationTooltip02" name="contact_number" placeholder="Phone Number" onChange={this.handleChange} required/>
+                                                        <Input type="text" className="form-control" id="validationTooltip02" name="contact_number" placeholder="Phone Number" onChange={this.handleChange} required />
                                                         <div className="valid-tooltip">
                                                             Looks good!
                                                         </div>
@@ -160,7 +197,7 @@ class AddPatient extends Component {
                                                 <Col md="4">
                                                     <div className="mb-3 position-relative">
                                                         <Label className="form-label" htmlFor="validationTooltip04">Age</Label>
-                                                        <Input type="text" className="form-control" id="validationTooltip04" name="age" placeholder="Age" onChange={this.handleChange} required/>
+                                                        <Input type="text" className="form-control" id="validationTooltip04" name="age" placeholder="Age" onChange={this.handleChange} required />
                                                         <div className="valid-tooltip">
                                                             Looks good!
                                                         </div>
@@ -171,8 +208,8 @@ class AddPatient extends Component {
                                             <Row>
                                                 <Col md="4">
                                                     <div className="mb-3 position-relative">
-                                                        <Label className="form-label" htmlFor="validationTooltip04">Date Of Birth</Label>
-                                                        <Input type="text" className="form-control" id="validationTooltip04" name="date_of_birth" placeholder="Date Of Birth (format i.e. yyyy-mm-dd)" onChange={this.handleChange} required/>
+                                                        <Label className="form-label" htmlFor="validationTooltip02">Email ID</Label>
+                                                        <Input type="text" className="form-control" id="validationTooltip02" name="email" placeholder="Email ID" onChange={this.handleChange} required />
                                                         <div className="valid-tooltip">
                                                             Looks good!
                                                         </div>
@@ -181,7 +218,7 @@ class AddPatient extends Component {
                                                 <Col md="4">
                                                     <div className="mb-3 position-relative">
                                                         <Label className="form-label" htmlFor="validationTooltip04">Address</Label>
-                                                        <Input type="text" className="form-control" id="validationTooltip04" name="address" placeholder="Address" onChange={this.handleChange} required/>
+                                                        <Input type="text" className="form-control" id="validationTooltip04" name="address" placeholder="Address" onChange={this.handleChange} required />
                                                         <div className="valid-tooltip">
                                                             Looks good!
                                                         </div>
@@ -190,7 +227,7 @@ class AddPatient extends Component {
                                                 <Col md="4">
                                                     <div className="mb-3 position-relative">
                                                         <Label className="form-label" htmlFor="validationTooltip04">Medical History</Label>
-                                                        <Input type="text" className="form-control" id="validationTooltip04" name="medical_history" placeholder="Medical History" onChange={this.handleChange} required/>
+                                                        <Input type="text" className="form-control" id="validationTooltip04" name="medical_history" placeholder="Medical History" onChange={this.handleChange} required />
                                                         <div className="valid-tooltip">
                                                             Looks good!
                                                         </div>

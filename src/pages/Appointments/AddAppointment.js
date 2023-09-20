@@ -7,6 +7,16 @@ import { Row, Col, Card, CardBody, Button, TabContent, TabPane, NavItem, NavLink
 import classnames from 'classnames';
 import { Link } from "react-router-dom";
 import Breadcrumbs from '../../components/Common/Breadcrumb';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { ClipLoader } from "react-spinners";
+import { css } from "@emotion/react";
+
+const override = css`
+  display: block;
+  margin: 0 auto;
+`;
+
 // Define custom styles for the Autosuggest component
 const customStyles = {
   container: {
@@ -27,7 +37,7 @@ const customStyles = {
   suggestion: {
     paddingTop: "10px",
     paddingBottom: "10px",
-    paddingLeft:"0px",
+    paddingLeft: "0px",
     borderBottom: "1px solid #ccc",
     cursor: "pointer",
     listStyleType: 'none', // Remove bullet points
@@ -46,9 +56,9 @@ class AddAppointment extends Component {
         { title: "Form Wizard", link: "#" },
       ],
       patientSuggestions: [], // Store patient suggestions from the API
-      patientData:[],
+      patientData: [],
       doctorSuggestions: [], // Store patient suggestions from the API
-      doctorData:[],
+      doctorData: [],
       patient: '',
       selectedPatientId: '',
       selectedDoctorId: '',
@@ -61,7 +71,9 @@ class AddAppointment extends Component {
       progressValue: 25,
       client: "",
       client_id: "",
-      access_token:"",
+      access_token: "",
+      isLoading: false, // Add isLoading state
+
     };
   }
 
@@ -69,7 +81,7 @@ class AddAppointment extends Component {
     // Load client_id from local storage
     const id = JSON.parse(localStorage.getItem('client_id'));
     //const access = JSON.parse(localStorage.getItem('access_token'));
-  
+
     if (id) {
       // Set client_id and client in the state using a single setState call
       await new Promise((resolve) => {
@@ -77,16 +89,40 @@ class AddAppointment extends Component {
 
         this.setState({ client_id: id, client: id }, resolve);
       });
-  
+
       // After setting the state, fetch data as needed
       console.log("hiii" + this.state.access_token);
-  
+
       await this.fetchPatientSuggestions();
       await this.fetchDoctorSuggestions();
     }
   }
-  
-  
+
+  formatDate(dateString) {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+
+  handleChange = (e) => {
+    const { name, value } = e.target;
+
+    // Special handling for date_of_birth to format it correctly
+    if (name === 'appointment_date') {
+      const formattedDate = this.formatDate(value);
+      this.setState({
+        appointment_date: formattedDate,
+      });
+    } else {
+      this.setState({
+        [name]: value,
+      });
+    }
+  };
+
+
   validateCurrentTab = () => {
     const { activeTabProgress, patient, doctor, appointment_date, start_time, end_time } = this.state;
 
@@ -161,101 +197,105 @@ class AddAppointment extends Component {
     }
   }
 
- // Function to handle changes in the patient input field
-//  handlePatientInputChange = (e, { newValue }) => {
-//   this.setState({ patient: newValue });
-// };
-handlePatientInputChange = (e, { newValue }) => {
-  this.setState({ patient: newValue });
+  // Function to handle changes in the patient input field
+  //  handlePatientInputChange = (e, { newValue }) => {
+  //   this.setState({ patient: newValue });
+  // };
+  handlePatientInputChange = (e, { newValue }) => {
+    this.setState({ patient: newValue });
 
-  // Check if the input is empty
-  if (!newValue) {
-    // Reset patientSuggestions to the original patientData when input is cleared
-    this.setState({ patientSuggestions: this.state.patientData });
-  } else {
-    // Filter suggestions from the permanent patientData based on the input
-    const suggestions = this.filterPatientData(newValue);
-    this.setState({ patientSuggestions: suggestions });
-  }
-};
-handleDoctorInputChange = (e, { newValue }) => {
-  this.setState({ doctor: newValue });
+    // Check if the input is empty
+    if (!newValue) {
+      // Reset patientSuggestions to the original patientData when input is cleared
+      this.setState({ patientSuggestions: this.state.patientData });
+    } else {
+      // Filter suggestions from the permanent patientData based on the input
+      const suggestions = this.filterPatientData(newValue);
+      this.setState({ patientSuggestions: suggestions });
+    }
+  };
+  handleDoctorInputChange = (e, { newValue }) => {
+    this.setState({ doctor: newValue });
 
-  // Check if the input is empty
-  if (!newValue) {
-    // Reset patientSuggestions to the original patientData when input is cleared
-    this.setState({ doctorSuggestions: this.state.doctorData });
-  } else {
-    // Filter suggestions from the permanent patientData based on the input
-    const suggestions = this.filterDoctorData(newValue);
-    this.setState({ doctorSuggestions: suggestions });
-  }
-};
-
-
-// Define a function to filter patientData based on user input
-filterPatientData = (inputValue) => {
-  const { patientData } = this.state;
-  const inputValueLower = inputValue.toLowerCase();
-
-  return patientData.filter((suggestion) =>
-    suggestion.email.toLowerCase().includes(inputValueLower) ||
-    suggestion.firstName.toLowerCase().includes(inputValueLower) ||
-    suggestion.lastName.toLowerCase().includes(inputValueLower) ||
-    (suggestion.id?.toString() || '').includes(inputValueLower)
-  );
-};
-filterDoctorData = (inputValue) => {
-  const { doctorData } = this.state;
-  const inputValueLower = inputValue.toLowerCase();
-
-  return doctorData.filter((suggestion) =>
-    suggestion.email.toLowerCase().includes(inputValueLower) ||
-    suggestion.firstName.toLowerCase().includes(inputValueLower) ||
-    suggestion.lastName.toLowerCase().includes(inputValueLower) ||
-    (suggestion.id?.toString() || '').includes(inputValueLower)
-  );
-};
-
-handleSubmit = async (e) => {
-  e.preventDefault();
-  const { patient, doctor, appointment_date, start_time, end_time, client } = this.state;
-  const acces = this.state.access_token;
-
-  const patientNumber = parseInt(patient, 10);
-  const doctorNumber = parseInt(doctor, 10);
-
-  const formData = {
-    patient: patientNumber,
-    doctor: doctorNumber,
-    appointment_date,
-    start_time,
-    end_time,
-    client,
+    // Check if the input is empty
+    if (!newValue) {
+      // Reset patientSuggestions to the original patientData when input is cleared
+      this.setState({ doctorSuggestions: this.state.doctorData });
+    } else {
+      // Filter suggestions from the permanent patientData based on the input
+      const suggestions = this.filterDoctorData(newValue);
+      this.setState({ doctorSuggestions: suggestions });
+    }
   };
 
-  try {
-    const response = await axios.post(`/Appointment/book/`, formData, {
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${acces}`
-      }
-    });
 
-    const data = response.data;
+  // Define a function to filter patientData based on user input
+  filterPatientData = (inputValue) => {
+    const { patientData } = this.state;
+    const inputValueLower = inputValue.toLowerCase();
 
-    if (data.message) {
-      toast.success(`${data.message}`, {
+    return patientData.filter((suggestion) =>
+      suggestion.email.toLowerCase().includes(inputValueLower) ||
+      suggestion.firstName.toLowerCase().includes(inputValueLower) ||
+      suggestion.lastName.toLowerCase().includes(inputValueLower) ||
+      (suggestion.id?.toString() || '').includes(inputValueLower)
+    );
+  };
+  filterDoctorData = (inputValue) => {
+    const { doctorData } = this.state;
+    const inputValueLower = inputValue.toLowerCase();
+
+    return doctorData.filter((suggestion) =>
+      suggestion.email.toLowerCase().includes(inputValueLower) ||
+      suggestion.firstName.toLowerCase().includes(inputValueLower) ||
+      suggestion.lastName.toLowerCase().includes(inputValueLower) ||
+      (suggestion.id?.toString() || '').includes(inputValueLower)
+    );
+  };
+
+  handleSubmit = (e) => {
+    e.preventDefault();
+    const { patient, doctor, appointment_date, start_time, end_time, client } = this.state;
+    const acces = this.state.access_token;
+
+    const patientNumber = parseInt(patient, 10);
+    const doctorNumber = parseInt(doctor, 10);
+
+    const formData = {
+      patient: patientNumber,
+      doctor: doctorNumber,
+      appointment_date,
+      start_time,
+      end_time,
+      client,
+    };
+
+    this.setState({ isLoading: true }); // Start loading
+
+    try {
+      const response = axios.post(`/Appointment/book/`, formData, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${acces}`
+        }
+      });
+
+      const data = response.data;
+
+
+      this.props.history.push("/appointments");
+      toast.success(`Appointment booked successfully.`, {
         autoClose: 1000, // Duration in milliseconds (e.g., 3000ms = 3 seconds)
       });
-    } else {
+
+
+    } catch (error) {
       toast.error("Appointment booking failed"); // Use toast for error notification
+    } finally {
+      this.setState({ isLoading: false }); // Stop loading
     }
-  } catch (error) {
-    console.error("Error:", error);
-    toast.error("Appointment booking failed"); // Use toast for error notification
   }
-}
+
 
   handleChange = (e) => {
     this.setState({
@@ -309,13 +349,13 @@ handleSubmit = async (e) => {
   getSuggestionValue = (suggestion) => {
     return `${suggestion.id} ${suggestion.firstName} ${suggestion.lastName}`;
   };
-  
+
   renderSuggestion = (suggestion) => (
     <div>
       {suggestion.id} {suggestion.firstName} {suggestion.lastName} ({suggestion.email})
     </div>
   );
-  
+
 
   onSuggestionsFetchRequested = ({ value }) => {
     this.setState({
@@ -332,30 +372,30 @@ handleSubmit = async (e) => {
     const inputValue = value.trim().toLowerCase();
     const inputLength = inputValue.length;
     const { patientSuggestions } = this.state;
-  
+
     return inputLength === 0
       ? []
       : patientSuggestions.filter((suggestion) =>
-          suggestion.email.toLowerCase().includes(inputValue) ||
-          suggestion.firstName.toLowerCase().includes(inputValue) ||
-          suggestion.lastName.toLowerCase().includes(inputValue) ||
-          (suggestion.id?.toString() || '').includes(inputValue) // Use optional chaining and provide a default empty string
-        );
+        suggestion.email.toLowerCase().includes(inputValue) ||
+        suggestion.firstName.toLowerCase().includes(inputValue) ||
+        suggestion.lastName.toLowerCase().includes(inputValue) ||
+        (suggestion.id?.toString() || '').includes(inputValue) // Use optional chaining and provide a default empty string
+      );
   };
 
 
   getDoctorSuggestionValue = (suggestion) => {
     return `${suggestion.id} ${suggestion.firstName} ${suggestion.lastName}`;
   };
-  
+
   renderDoctorSuggestion = (suggestion) => (
     <div
-      
+
     >
       {suggestion.id} {suggestion.firstName} {suggestion.lastName} ({suggestion.email})
     </div>
   );
-  
+
 
   onDoctorSuggestionsFetchRequested = ({ value }) => {
     this.setState({
@@ -372,21 +412,21 @@ handleSubmit = async (e) => {
     const inputValue = value.trim().toLowerCase();
     const inputLength = inputValue.length;
     const { doctorSuggestions } = this.state;
-  
+
     return inputLength === 0
       ? []
       : doctorSuggestions.filter((suggestion) =>
-          suggestion.email.toLowerCase().includes(inputValue) ||
-          suggestion.firstName.toLowerCase().includes(inputValue) ||
-          suggestion.lastName.toLowerCase().includes(inputValue) ||
-          (suggestion.id?.toString() || '').includes(inputValue) // Use optional chaining and provide a default empty string
-        );
+        suggestion.email.toLowerCase().includes(inputValue) ||
+        suggestion.firstName.toLowerCase().includes(inputValue) ||
+        suggestion.lastName.toLowerCase().includes(inputValue) ||
+        (suggestion.id?.toString() || '').includes(inputValue) // Use optional chaining and provide a default empty string
+      );
   };
-  
+
 
   render() {
-    const { patient, doctor, appointment_date, start_time, end_time, patientSuggestions,doctorSuggestions } = this.state;
-    
+    const { patient, doctor, appointment_date, start_time, end_time, patientSuggestions, doctorSuggestions } = this.state;
+
     return (
       <React.Fragment>
         <div className="page-content">
@@ -463,23 +503,23 @@ handleSubmit = async (e) => {
                                 <Col lg="12">
                                   <div className="mb-3">
                                     <Label className="form-label" htmlFor="basicpill-pancard-input5">Doctor ID And Name </Label>
-                                 <Autosuggest
-                                    suggestions={doctorSuggestions}
-                                    onSuggestionsFetchRequested={this.onDoctorSuggestionsFetchRequested}
-                                    onSuggestionsClearRequested={this.onDoctorSuggestionsClearRequested}
-                                    getSuggestionValue={this.getDoctorSuggestionValue}
-                                    renderSuggestion={this.renderDoctorSuggestion}
-                                    inputProps={{
-                                      placeholder: 'Doctor ID Name',
-                                      value: doctor,
-                                      onChange: this.handleDoctorInputChange,
-                                      name: 'doctor',
-                                      className: 'form-control', // Apply Bootstrap form-control class here
-                                      required: true,
-                                    }}
-                                    theme={customStyles} // Apply custom styles here
+                                    <Autosuggest
+                                      suggestions={doctorSuggestions}
+                                      onSuggestionsFetchRequested={this.onDoctorSuggestionsFetchRequested}
+                                      onSuggestionsClearRequested={this.onDoctorSuggestionsClearRequested}
+                                      getSuggestionValue={this.getDoctorSuggestionValue}
+                                      renderSuggestion={this.renderDoctorSuggestion}
+                                      inputProps={{
+                                        placeholder: 'Doctor ID Name',
+                                        value: doctor,
+                                        onChange: this.handleDoctorInputChange,
+                                        name: 'doctor',
+                                        className: 'form-control', // Apply Bootstrap form-control class here
+                                        required: true,
+                                      }}
+                                      theme={customStyles} // Apply custom styles here
 
-                                  />
+                                    />
                                   </div>
                                 </Col>
                               </Row>
@@ -491,21 +531,34 @@ handleSubmit = async (e) => {
                             <Form>
                               <Row>
                                 <Col lg="4">
-                                  <div className="mb-3">
-                                    <Label className="form-label" htmlFor="basicpill-namecard-input11">Appointment Date</Label>
-                                    <Input type="text" className="form-control" id="basicpill-namecard-input11" value={appointment_date} name="appointment_date" placeholder="Appointment Date" onChange={this.handleChange} required />
+                                  <div className="mb-3 position-relative">
+                                    <Label className="form-label" htmlFor="validationTooltip04">Appointment Date</Label>
+                                    <input
+                                      type="date"
+                                      className="form-control"
+                                      placeholderText="Appointment Date"
+                                      name="appointment_date"
+                                      value={appointment_date} // Use the formatted date
+                                      onChange={this.handleChange}
+
+                                      required
+                                    />
+                                    <div className="valid-tooltip">
+                                      Looks good!
+                                    </div>
                                   </div>
                                 </Col>
+
                                 <Col lg="4">
                                   <div className="mb-3">
                                     <Label className="form-label" htmlFor="basicpill-namecard-input11">Start Time</Label>
-                                    <Input type="text" className="form-control" id="basicpill-namecard-input11" value={start_time} name="start_time" placeholder="Start Time" onChange={this.handleChange} required />
+                                    <Input type="time" className="form-control" id="basicpill-namecard-input11" value={start_time} name="start_time" placeholder="Start Time" onChange={this.handleChange} required />
                                   </div>
                                 </Col>
                                 <Col lg="4">
                                   <div className="mb-3">
                                     <Label className="form-label" htmlFor="basicpill-namecard-input11">End Time</Label>
-                                    <Input type="text" className="form-control" id="basicpill-namecard-input11" value={end_time} name="end_time" placeholder="End Time" onChange={this.handleChange} required />
+                                    <Input type="time" className="form-control" id="basicpill-namecard-input11" value={end_time} name="end_time" placeholder="End Time" onChange={this.handleChange} required />
                                   </div>
                                 </Col>
                               </Row>
@@ -519,9 +572,13 @@ handleSubmit = async (e) => {
                                 <div className="mb-4">
                                   <i className="mdi mdi-check-circle-outline text-success display-4" onClick={this.handleSubmit}></i>
                                 </div>
-                                <div>
-                                  <Button color="primary" onClick={this.handleSubmit}>Confirm Details</Button>
-                                </div>
+                                {this.state.isLoading ? (
+                                  <ClipLoader color={"#1CBB8C"} loading={this.state.isLoading} css={override} size={40} />
+                                ) : (
+                                  <div>
+                                    <Button color="primary" onClick={this.handleSubmit}>Confirm Details</Button>
+                                  </div>
+                                )}
                               </div>
                             </Col>
                           </div>

@@ -4,7 +4,8 @@ import { toast } from 'react-toastify'; // Import toast from react-toastify
 import axios from 'axios';
 import 'react-toastify/dist/ReactToastify.css'; // Import the CSS file for styling
 import { withRouter } from 'react-router-dom';
-
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 //Import Breadcrumb
 import Breadcrumbs from '../../components/Common/Breadcrumb';
 
@@ -27,66 +28,62 @@ class EditDoctor extends Component {
       date_of_birth: '',
       doctor_id: '',
       department: '',
+      profile_image: null,
       client_id: "",
-      access_token:"",
+      access_token: "",
 
 
     };
   }
-  // async componentDidMount() {
-  //   const { match } = this.props; // React Router match object
-  //   const doctor_id = match.params.doctor_id;
-  //   const { client_id } = this.state;
-  //   const id = JSON.parse(localStorage.getItem('client_id'));
-  //   if (id) {
-  //     this.setState({ client: id });
-  //   }
-  //   try {
+  formatDate(dateString) {
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
 
-  //     const response = await fetch(`http://194.163.40.231:8080/Doctor/details-By/`, {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json", // Set the content type to JSON
-  //       },
-  //       body: JSON.stringify({ doctor_id, client_id }),
-  //     });
-  //     if (!response.ok) {
-  //       throw new Error("Network response was not ok.");
-  //     }
-  //     const data = await response.json();
-  //     console.log(data.Data);
+  handleChange = (e) => {
+    const { name, value } = e.target;
 
-  //     // Update state with fetched doctor data
-  //     this.setState({
-  //       first_name: data.Data[0].first_name,
-  //       last_name: data.Data[0].last_name,
-  //       email: data.Data[0].email,
-  //       contact_number: data.Data[0].contact_number,
-  //       specialty: data.Data[0].specialty,
-  //       qualifications: data.Data[0].qualifications,
-  //       address: data.Data[0].address,
-  //       gender: data.Data[0].gender,
-  //       date_of_birth: data.Data[0].date_of_birth,
-  //       doctor_id: doctor_id,
-  //       department: data.Data[0].department
-  //       // You can update the image state here too if needed
-  //     });
+    // Special handling for date_of_birth to format it correctly
+    if (name === 'date_of_birth') {
+      const formattedDate = this.formatDate(value);
+      this.setState({
+        date_of_birth: formattedDate,
+      });
+    } else {
+      this.setState({
+        [name]: value,
+      });
+    }
+  };
 
-  //   } catch (error) {
-  //     console.log(error);
-  //     // Handle error fetching doctor data
-  //   }
-  // }
+  handleProfileImageChange = (e) => {
+    const file = e.target.files[0];
+    // Check if the selected file is not null and it's an instance of File
+    if (file && file instanceof File) {
+      this.setState({
+        profile_image: file, // Use the correct key 'profile_image' here
+      });
+    } else {
+      // Reset the image if it's not valid
+      this.setState({
+        profile_image: null, // Use the correct key 'profile_image' here
+      });
+    }
+  };
+
   async componentDidMount() {
     try {
       const { match } = this.props;
       const doctor_id = match.params.doctor_id;
       const id = JSON.parse(localStorage.getItem('client_id'));
       const access = JSON.parse(localStorage.getItem('access_token'));
-  
+
       if (id) {
         this.setState({ client_id: id, access_token: access });
-  
+
         const response = await fetch(`/Doctor/details-By/`, {
           method: "POST",
           headers: {
@@ -95,13 +92,13 @@ class EditDoctor extends Component {
           },
           body: JSON.stringify({ doctor_id, client_id: id }),
         });
-  
+
         if (!response.ok) {
           throw new Error("Network response was not ok.");
         }
-  
+
         const data = await response.json();
-  
+
         if (data.Data.length > 0) {
           const {
             first_name,
@@ -115,7 +112,7 @@ class EditDoctor extends Component {
             date_of_birth,
             department
           } = data.Data[0];
-  
+
           this.setState({
             first_name,
             last_name,
@@ -139,8 +136,8 @@ class EditDoctor extends Component {
       console.log(error);
     }
   }
-  
-  
+
+
 
   handleChange = (e) => {
     this.setState({
@@ -148,20 +145,7 @@ class EditDoctor extends Component {
     });
   };
 
-  // handleFileChange = (e) => {
-  //   const file = e.target.files[0];
-  //   // Check if the selected file is not null and it's an instance of File
-  //   if (file && file instanceof File) {
-  //     this.setState({
-  //       image: file, // Use the correct key 'image' here
-  //     });
-  //   } else {
-  //     // Reset the image if it's not valid
-  //     this.setState({
-  //       image: null, // Use the correct key 'image' here
-  //     });
-  //   }
-  // };
+
 
 
 
@@ -177,13 +161,15 @@ class EditDoctor extends Component {
       address,
       gender,
       date_of_birth,
+      profile_image,
+
       // Use the correct key 'image' here
       doctor_id,
       department,
       client_id,
       access_token,
     } = this.state;
-  
+
     const formData = new FormData();
     formData.append('first_name', first_name);
     formData.append('last_name', last_name);
@@ -194,13 +180,17 @@ class EditDoctor extends Component {
     formData.append('specialty', specialty);
     formData.append('qualifications', qualifications);
     formData.append('address', address);
+    // formData.append('profile_image', profile_image); 
     formData.append('department', department);
     formData.append('doctor_id', doctor_id);
     formData.append('client_id', client_id);
+    if (profile_image) {
+      // Append profile_image only if it's selected
+      formData.append('profile_image', profile_image);
+    }
 
-  
     // Use the correct key 'image' here
-  
+
     try {
       const response = await axios.put(`/Doctor/Updated/`, formData, {
         headers: {
@@ -208,9 +198,9 @@ class EditDoctor extends Component {
           'Authorization': `Bearer ${access_token}`,
         },
       });
-  
+
       const data = response.data;
-  
+
       if (data.message) {
         toast.success(data.message);
         this.props.history.push('/doctors'); // Assuming "/doctors" is the route for the doctors page
@@ -222,7 +212,7 @@ class EditDoctor extends Component {
       toast.error("An error occurred while processing your request.");
     }
   };
-  
+
   render() {
     const {
       first_name,
@@ -245,7 +235,7 @@ class EditDoctor extends Component {
               <Col lg={12}>
                 <Card>
                   <CardBody>
-                    <Form className="needs-validation" method="post" id="tooltipForm" onSubmit={this.handleSubmit}>
+                    <Form className="needs-validation" method="post" id="tooltipForm" onSubmit={this.handleSubmit} enctype="multipart/form-data">
                       <Row>
                         <Col md="4">
                           <div className="mb-3 position-relative">
@@ -277,6 +267,17 @@ class EditDoctor extends Component {
                             </div>
                           </div>
                         </Col>
+                      </Row>
+                      <Row>
+                        <Col md="4">
+                          <div className="mb-3 position-relative">
+                            <Label className="form-label" htmlFor="validationTooltip04">Profile Image</Label>
+                            <Input type="file" className="form-control" id="validationTooltip06" name="profile_image" placeholder="Profile Image" onChange={this.handleProfileImageChange} />
+                            <div className="valid-tooltip">
+                              Looks good!
+                            </div>
+                          </div>
+                        </Col>
                         <Col md="4">
                           <div className="mb-3 position-relative">
                             <Label className="form-label" htmlFor="validationTooltip02">Phone Number</Label>
@@ -288,23 +289,24 @@ class EditDoctor extends Component {
                         </Col>
                         <Col md="4">
                           <div className="mb-3 position-relative">
-                            <Label className="form-label" htmlFor="validationTooltip02">Specialty</Label>
-                            <select className="form-control" value={specialty} name="specialty" onChange={this.handleChange}>
-                              <option value="">Select Specialty</option>
-                              <option value="Cardiology">Cardiology</option>
-                              <option value="Dermatology">Dermatology</option>
-                              <option value="Neurology">Neurology</option>
-                              <option value="Orthopedics">Orthopedics</option>
-                              <option value="Pediatrics">Pediatrics</option>
-                              <option value="Gynecology">Gynecology</option>
-                              <option value="Urology">Urology</option>
-                              <option value="Oncology">Oncology</option>
-                              <option value="Psychiatry">Psychiatry</option>
-                              <option value="ENT">ENT</option>
-                            </select>
+                            <Label className="form-label" htmlFor="validationTooltip04">Date Of Birth</Label>
+                            <input
+                              type="date"
+                              className="form-control"
+                              placeholderText="Date Of Birth"
+                              name="date_of_birth"
+                              value={date_of_birth} // Use the formatted date
+                              onChange={this.handleChange}
 
+                              required
+                            />
+                            <div className="valid-tooltip">
+                              Looks good!
+                            </div>
                           </div>
                         </Col>
+                      </Row>
+                      <Row>
                         <Col md="4">
                           <div className="mb-3 position-relative">
                             <Label className="form-label" htmlFor="validationTooltip02">Department</Label>
@@ -314,9 +316,9 @@ class EditDoctor extends Component {
                             </div>
                           </div>
                         </Col>
-                      </Row>
 
-                      <Row>
+
+
                         <Col md="4">
                           <div className="mb-3 position-relative">
                             <Label className="form-label" htmlFor="validationTooltip02">Qualifications</Label>
@@ -338,19 +340,29 @@ class EditDoctor extends Component {
 
                           </div>
                         </Col>
+                      </Row>
+                      <Row>
                         <Col md="4">
                           <div className="mb-3 position-relative">
-                            <Label className="form-label" htmlFor="validationTooltip04">Date Of Birth</Label>
-                            <Input type="text" value={date_of_birth} className="form-control" id="validationTooltip04" name="date_of_birth" placeholder="Date Of Birth(format i.e. yyyy-mm-dd)" onChange={this.handleChange} />
-                            <div className="valid-tooltip">
-                              Looks good!
-                            </div>
+                            <Label className="form-label" htmlFor="validationTooltip02">Specialty</Label>
+                            <select className="form-control" value={specialty} name="specialty" onChange={this.handleChange}>
+                              <option value="">Select Specialty</option>
+                              <option value="Cardiology">Cardiology</option>
+                              <option value="Dermatology">Dermatology</option>
+                              <option value="Neurology">Neurology</option>
+                              <option value="Orthopedics">Orthopedics</option>
+                              <option value="Pediatrics">Pediatrics</option>
+                              <option value="Gynecology">Gynecology</option>
+                              <option value="Urology">Urology</option>
+                              <option value="Oncology">Oncology</option>
+                              <option value="Psychiatry">Psychiatry</option>
+                              <option value="ENT">ENT</option>
+                            </select>
+
                           </div>
                         </Col>
-                      </Row>
 
-                      <Row>
-                        <Col md="12">
+                        <Col md="8">
                           <div className="mb-3 position-relative">
                             <Label className="form-label" htmlFor="validationTooltip04">Address</Label>
                             <Input type="text" value={address} className="form-control" id="validationTooltip04" name="address" placeholder="Address" onChange={this.handleChange} />

@@ -20,6 +20,7 @@ class AddHospital extends Component {
             profile_image: null,
             user_logo: null,
             user_type: 'Admin',
+            name:"",
         };
     }
     componentDidMount() {
@@ -47,9 +48,9 @@ class AddHospital extends Component {
         });
       };
 
-    handleSubmit = async (e) => {
+      handleSubmit = async (e) => {
         e.preventDefault();
-        const { owner_name, hospital_name, city, address, email, phone, password, profile_image, user_logo, user_type } = this.state;
+        const { owner_name, hospital_name, city, address, email, phone, password, profile_image, user_logo, user_type,name } = this.state;
         const formData = new FormData();
         formData.append("hospital_name", hospital_name);
         formData.append("owner_name", owner_name);
@@ -61,29 +62,35 @@ class AddHospital extends Component {
         formData.append("profile_image", profile_image);
         formData.append("user_logo", user_logo);
         formData.append("user_type", user_type);
+        formData.append("name", owner_name);
 
+    
         try {
-            const response = await fetch("/Hospital/add/", {
-                method: "POST",
+            const response = await axios.post("/Hospital/add/", formData, {
                 headers: {
-                    'Authorization': `Bearer ${this.state.access_token}`
-                  },
-                body: formData,
+                    'Authorization': `Bearer ${this.state.access_token}`,
+                    'Content-Type': 'multipart/form-data', // Ensure you set the content type for FormData
+                },
             });
-
-            const data = await response.json();
-
+    
+            const data = response.data;
+    
             if (data.message) {
-                window.alert(data.message);
+                // Display a success toast
+                this.props.history.push('/hospital-list'); // Assuming "/doctors" is the route for the doctors page
+                toast.success(data.message);
             }
         } catch (error) {
-            if (error.message) {
-                window.alert(error.message);
+            if (error.response && error.response.data && error.response.data.message) {
+                // Display an error toast with the error message from the server
+                toast.error(error.response.data.message);
             } else {
-                window.alert("Something went wrong");
+                // Display a generic error toast
+                toast.error("Something went wrong");
             }
         }
     };
+    
 
     render() {
         return (
